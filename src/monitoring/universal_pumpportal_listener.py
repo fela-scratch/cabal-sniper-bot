@@ -65,14 +65,14 @@ class UniversalPumpPortalListener(BaseTokenListener):
     async def listen_for_tokens(
         self,
         token_callback: Callable[[TokenInfo], Awaitable[None]],
-        match_string: str | None = None,
-        creator_address: str | None = None,
+        match_string: str | list[str] | None = None,
+        creator_address: str | list[str] | None = None,
     ) -> None:
         """Listen for new token creations using PumpPortal WebSocket.
 
         Args:
             token_callback: Callback function for new tokens
-            match_string: Optional string to match in token name/symbol
+            match_string: Optional string or list of strings to match in token name/symbol
             creator_address: Optional creator address to filter by
         """
         while True:
@@ -91,30 +91,42 @@ class UniversalPumpPortalListener(BaseTokenListener):
                                 f"New token detected: {token_info.name} ({token_info.symbol}) on {token_info.platform.value}"
                             )
 
-                            # Apply filters
-                            if match_string and not (
-                                match_string.lower() in token_info.name.lower()
-                                or match_string.lower() in token_info.symbol.lower()
-                            ):
-                                logger.info(
-                                    f"Token does not match filter '{match_string}'. Skipping..."
-                                )
-                                continue
-
-                            if creator_address:
-                                creator_str = (
-                                    str(token_info.creator)
-                                    if token_info.creator
-                                    else ""
-                                )
-                                user_str = (
-                                    str(token_info.user) if token_info.user else ""
-                                )
-                                if creator_address not in [creator_str, user_str]:
+                            # Apply match_string filter (handles both string and list of strings)
+                            if match_string:
+                                match_strings = [match_string] if isinstance(match_string, str) else match_string
+                                # Filter out None values and empty strings
+                                match_strings = [m for m in match_strings if m]
+                                
+                                if match_strings and not any(
+                                    m.lower() in token_info.name.lower()
+                                    or m.lower() in token_info.symbol.lower()
+                                    for m in match_strings
+                                ):
                                     logger.info(
-                                        f"Token not created by {creator_address}. Skipping..."
+                                        f"Token does not match filters {match_strings}. Skipping..."
                                     )
                                     continue
+
+                            # Apply creator_address filter (handles both string and list of strings)
+                            if creator_address:
+                                addresses = [creator_address] if isinstance(creator_address, str) else creator_address
+                                # Filter out None values
+                                addresses = [a for a in addresses if a]
+                                
+                                if addresses:
+                                    creator_str = (
+                                        str(token_info.creator)
+                                        if token_info.creator
+                                        else ""
+                                    )
+                                    user_str = (
+                                        str(token_info.user) if token_info.user else ""
+                                    )
+                                    if creator_str not in addresses and user_str not in addresses:
+                                        logger.info(
+                                            f"Token not created by any of {addresses}. Skipping..."
+                                        )
+                                        continue
 
                             await token_callback(token_info)
 

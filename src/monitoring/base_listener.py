@@ -23,16 +23,16 @@ class BaseTokenListener(ABC):
     async def listen_for_tokens(
         self,
         token_callback: Callable[[TokenInfo], Awaitable[None]],
-        match_string: str | None = None,
-        creator_address: str | None = None,
+        match_string: str | list[str] | None = None,
+        creator_address: str | list[str] | None = None,
     ) -> None:
         """
         Listen for new token creations.
 
         Args:
             token_callback: Callback function for new tokens
-            match_string: Optional string to match in token name/symbol
-            creator_address: Optional creator address to filter by
+            match_string: Optional string or list of strings to match in token name/symbol
+            creator_address: Optional creator address or list of addresses to filter by
         """
         pass
 

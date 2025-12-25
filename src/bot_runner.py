@@ -139,7 +139,11 @@ async def start_bot(config_path: str):
             compute_units=cfg.get("compute_units", {}),
         )
 
-        await trader.start()
+        try:
+            await trader.start()
+        except (asyncio.CancelledError, KeyboardInterrupt):
+            logging.info("Trader shutdown requested; stopping gracefully")
+            return
 
     except Exception as e:
         logging.exception(f"Failed to initialize or start trader: {e}")
@@ -147,7 +151,10 @@ async def start_bot(config_path: str):
 
 
 def run_bot_process(config_path):
-    asyncio.run(start_bot(config_path))
+    try:
+        asyncio.run(start_bot(config_path))
+    except KeyboardInterrupt:
+        logging.info("Bot process received KeyboardInterrupt, exiting.")
 
 
 def run_all_bots():
@@ -235,10 +242,32 @@ def run_all_bots():
         f"Started {len(bot_files) - skipped_bots} bots, skipped {skipped_bots} disabled/invalid bots"
     )
 
-    # Wait for all processes to complete
-    for p in processes:
-        p.join()
-        logging.info(f"Process {p.name} completed")
+    # Wait for all processes to complete; handle Ctrl+C gracefully
+    try:
+        for p in processes:
+            p.join()
+            logging.info(f"Process {p.name} completed")
+    except KeyboardInterrupt:
+        logging.info("Shutdown requested, terminating child processes...")
+        for p in processes:
+            try:
+                if p.is_alive():
+                    logging.info(f"Terminating {p.name} (pid={p.pid})")
+                    p.terminate()
+            except Exception:
+                logging.exception(f"Error terminating process {p.name}")
+
+        # Give processes a moment to exit, then force-kill if still alive
+        for p in processes:
+            p.join(timeout=5)
+            if p.is_alive():
+                try:
+                    logging.info(f"Killing {p.name} (pid={p.pid})")
+                    p.kill()
+                except Exception:
+                    logging.exception(f"Error killing process {p.name}")
+
+        logging.info("All child processes terminated")
 
 
 def main() -> None:
@@ -264,7 +293,10 @@ def main() -> None:
     except Exception as e:
         logging.warning(f"Could not load platform information: {e}")
 
-    run_all_bots()
+    try:
+        run_all_bots()
+    except KeyboardInterrupt:
+        logging.info("Main: shutdown requested, exiting")
 
 
 if __name__ == "__main__":

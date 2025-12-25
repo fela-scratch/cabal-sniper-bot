@@ -8,7 +8,7 @@ rpc_endpoint: "${SOLANA_NODE_RPC_ENDPOINT}"
 wss_endpoint: "${SOLANA_NODE_WSS_ENDPOINT}"
 private_key: "${SOLANA_PRIVATE_KEY}"
 
-enabled: false # You can turn off the bot w/o removing its config
+enabled: true # You can turn off the bot w/o removing its config
 separate_process: true
 
 # Options: "pump_fun" (default), "lets_bonk"
@@ -23,22 +23,22 @@ geyser:
 # Trading parameters
 # Control trade execution: amount of SOL per trade and acceptable price deviation
 trade:
-  buy_amount: 0.0001 # Amount of SOL to spend when buying (in SOL)
-  buy_slippage: 0.3 # Maximum acceptable price deviation (0.3 = 30%)
-  sell_slippage: 0.3
+  buy_amount: 0.02 # Amount of SOL to spend when buying (in SOL)
+  buy_slippage: 0.05 # Maximum acceptable price deviation (0.3 = 30%)
+  sell_slippage: 0.05
 
   # Exit strategy configuration
   exit_strategy: "time_based" # Options: "time_based", "tp_sl", "manual"
   take_profit_percentage: 0.4 # Take profit at 40% gain (0.4 = 40%)
   stop_loss_percentage: 0.4 # Stop loss at 40% loss (0.4 = 40%)
-  max_hold_time: 15 # Maximum hold time in seconds for TP/SL strategy, for time_based - see wait_after_buy
-  price_check_interval: 2 # Check price every 2 seconds
+  max_hold_time: 4 # Maximum hold time in seconds for TP/SL strategy, for time_based - see wait_after_buy
+  price_check_interval: 5 # Check price every 2 seconds
 
   # EXTREME FAST mode configuration
   # When enabled, skips waiting for the bonding curve to stabilize and RPC price check.
   # The bot buys the specified number of tokens directly, making the process faster but less precise.
   extreme_fast_mode: true
-  extreme_fast_token_amount: 20 # Amount of tokens to buy
+  extreme_fast_token_amount: 150_000 # Amount of tokens to buy
 
 # Priority fee configuration
 # Manage transaction speed and cost on the Solana network.
@@ -47,15 +47,15 @@ priority_fees:
   enable_dynamic: false # Use latest transactions to estimate required fee (getRecentPrioritizationFees)
   enable_fixed: true # Use fixed amount below
   fixed_amount: 200_000 # Base fee in microlamports
-  extra_percentage: 0.0 # Percentage increase on riority fee regardless of the calculation method (0.1 = 10%)
-  hard_cap: 200_000 # Maximum allowable fee in microlamports to prevent excessive spending
+  extra_percentage: 0.1 # Percentage increase on riority fee regardless of the calculation method (0.1 = 10%)
+  hard_cap: 300_000 # Maximum allowable fee in microlamports to prevent excessive spending
 
 # Compute unit limits for transaction processing
 # Operation-specific defaults are used if not specified: buy=100K, sell=60K
 compute_units:
   # Override default CU limits for this platform
   # buy: 100_000    # Buy operations (ATA creation + trading)
-  # sell: 60_000    # Sell operations (just trading)
+  # sell: 100_000    # Sell operations (just trading)
 
   # Account data size optimization (reduces CU cost and improves tx priority)
   # Reduces CU cost from 16k to ~128 CU by limiting loaded account data.
@@ -67,18 +67,23 @@ compute_units:
 
 # Filters for token selection
 filters:
-  match_string: null # Only process tokens with this string in name/symbol
-  bro_address: null # Only trade tokens created by this user address
+  match_string: # Only process tokens with this string in name/symbol
+    - null
+    - null
+  bro_address: # Only trade tokens created by this user address
+    - bwamJzztZsepfkteWRChggmXuiiCQvpLqPietdNfSXa # dev_wallet_1
+    - GZVSEAajExLJEvACHHQcujBw7nJq98GWUEZtood9LM9b # dev_wallet_2
+    - HZio8jHNYHJ994x7cyr9T1o7eua6PnxSpwjm1g34eHZe # dev_wallet_3
   listener_type: "logs" # Method for detecting new tokens: "logs", "blocks", or "geyser"
   max_token_age: 0.001 # Maximum token age in seconds for processing
   marry_mode: false # Only buy tokens, skip selling
-  yolo_mode: false # Continuously trade tokens
+  yolo_mode: true # Continuously trade tokens
 
 # Retry and timeout settings
 retries:
   max_attempts: 1 # Number of attempts for transaction submission
-  wait_after_creation: 15 # Seconds to wait after token creation (only if EXTREME FAST is disabled)
-  wait_after_buy: 15 # Holding period after buy transaction
+  wait_after_creation: null # Seconds to wait after token creation (only if EXTREME FAST is disabled)
+  wait_after_buy: 3 # Holding period after buy transaction
   wait_before_new_token: 15 # Pause between token trades
 
 # Token and account management
@@ -88,7 +93,7 @@ cleanup:
   # "on_fail": only clean up if a buy transaction fails.
   # "after_sell": clean up after selling.
   # "post_session": clean up all empty accounts after a trading session ends.
-  mode: "post_session"
+  mode: "disabled"
   force_close_with_burn: false # Force burning remaining tokens before closing account
   with_priority_fee: false # Use priority fees for cleanup transactions
 
