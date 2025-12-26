@@ -9,7 +9,15 @@ from datetime import datetime
 from pathlib import Path
 from time import monotonic
 
-import uvloop
+# Try to use uvloop for better performance on Unix systems (Linux/macOS)
+# Falls back to default asyncio on Windows where uvloop is not supported
+try:
+    import uvloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+except ImportError:
+    # uvloop not available (e.g., on Windows); use default event loop
+    pass
+
 from solders.pubkey import Pubkey
 
 from cleanup.modes import (
@@ -27,8 +35,6 @@ from trading.base import TradeResult
 from trading.platform_aware import PlatformAwareBuyer, PlatformAwareSeller
 from trading.position import Position
 from utils.logger import get_logger
-
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 logger = get_logger(__name__)
 

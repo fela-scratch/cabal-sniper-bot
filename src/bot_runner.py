@@ -4,9 +4,14 @@ import multiprocessing
 from datetime import datetime
 from pathlib import Path
 
-import uvloop
-
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+# Try to use uvloop for better performance on Unix systems (Linux/macOS)
+# Falls back to default asyncio on Windows where uvloop is not supported
+try:
+    import uvloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+except ImportError:
+    # uvloop not available (e.g., on Windows); use default event loop
+    pass
 
 from config_loader import (
     get_platform_from_config,

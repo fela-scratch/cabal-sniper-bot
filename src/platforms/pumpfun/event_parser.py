@@ -17,7 +17,7 @@ from core.pubkeys import SystemAddresses
 from interfaces.core import EventParser, Platform, TokenInfo
 from platforms.pumpfun.address_provider import PumpFunAddresses
 from utils.idl_parser import IDLParser
-from utils.logger import get_logger
+from utils.logger import get_logger, safe_emoji
 
 logger = get_logger(__name__)
 
@@ -100,7 +100,7 @@ class PumpFunEventParser(EventParser):
         if any("Program log: Instruction: CreateTokenAccount" in log for log in logs):
             return None
 
-        logger.info(f"🔍 Parsing token creation from logs for signature: {signature}")
+        logger.info(f"{safe_emoji('🔍', '[PARSING]')} Parsing token creation from logs for signature: {signature}")
 
         # Look for event data in the logs (CreateEvent data!)
         # We need to find the Program data that comes after "Instruction: Create"
@@ -113,7 +113,7 @@ class PumpFunEventParser(EventParser):
                 if "Program log: Instruction: Create" in log or "Program log: Instruction: Create_v2" in log:
                     create_instruction_found = True
                     instruction_type = "Create_v2" if "Create_v2" in log else "Create"
-                    logger.info(f"📝 Found {instruction_type} instruction at log index {i}")
+                    logger.info(f"{safe_emoji('📝', '[INSTRUCTION]')} Found {instruction_type} instruction at log index {i}")
                 elif "Program data:" in log:
                     # Extract base64 encoded event data
                     encoded_data = log.split("Program data: ")[1].strip()
@@ -123,11 +123,11 @@ class PumpFunEventParser(EventParser):
                     )
 
             if not create_instruction_found:
-                logger.info("❌ No Create or Create_v2 instruction found in logs")
+                logger.info(f"{safe_emoji('❌', '[ERROR]')} No Create or Create_v2 instruction found in logs")
                 return None
 
             if not program_data_entries:
-                logger.info("❌ No Program data entries found in logs")
+                logger.info(f"{safe_emoji('❌', '[ERROR]')} No Program data entries found in logs")
                 return None
 
             logger.info(
@@ -234,10 +234,10 @@ class PumpFunEventParser(EventParser):
                             else fields["creator"]
                         )
 
-                        logger.info(f"🔑 Mint: {mint}")
-                        logger.info(f"🔑 Bonding Curve: {bonding_curve}")
-                        logger.info(f"🔑 User: {user}")
-                        logger.info(f"🔑 Creator: {creator}")
+                        logger.info(f"{safe_emoji('🔑', '[KEY]')} Mint: {mint}")
+                        logger.info(f"{safe_emoji('🔑', '[KEY]')} Bonding Curve: {bonding_curve}")
+                        logger.info(f"{safe_emoji('🔑', '[KEY]')} User: {user}")
+                        logger.info(f"{safe_emoji('🔑', '[KEY]')} Creator: {creator}")
 
                     except Exception as e:
                         logger.info(f"❌ Failed to convert pubkey fields: {e}")
@@ -254,7 +254,7 @@ class PumpFunEventParser(EventParser):
                     creator_vault = self._derive_creator_vault(creator)
 
                     logger.info(
-                        f"✅ Successfully parsed CreateEvent for token: {fields.get('symbol', 'Unknown')}"
+                        f"{safe_emoji('✅', '[OK]')} Successfully parsed CreateEvent for token: {fields.get('symbol', 'Unknown')}"
                     )
 
                     return TokenInfo(

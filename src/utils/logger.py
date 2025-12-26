@@ -3,9 +3,28 @@ Logging utilities for the pump.fun trading bot.
 """
 
 import logging
+import platform
 
 # Global dict to store loggers
 _loggers: dict[str, logging.Logger] = {}
+
+# Detect if running on Windows (which has limited emoji support in console)
+_IS_WINDOWS = platform.system() == "Windows"
+
+
+def safe_emoji(emoji: str, text_fallback: str) -> str:
+    """Return emoji on non-Windows systems, text fallback on Windows.
+
+    This prevents UnicodeEncodeError on Windows Command Prompt which uses cp1252.
+
+    Args:
+        emoji: Emoji character(s)
+        text_fallback: Text fallback for Windows systems
+
+    Returns:
+        Emoji on Unix/macOS, text fallback on Windows
+    """
+    return text_fallback if _IS_WINDOWS else emoji
 
 
 def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
