@@ -110,32 +110,41 @@ class UniversalLogsListener(BaseTokenListener):
                                 f"New token detected: {token_info.name} ({token_info.symbol}) on {token_info.platform.value}"
                             )
 
-                            # Apply match_string filter (handles both string and list of strings)
+                            # Evaluate match_string and creator_address filters (OR semantics)
+                            name_match = False
+                            creator_match = False
+
+                            # Evaluate name/symbol match
                             if match_string:
                                 match_strings = [match_string] if isinstance(match_string, str) else match_string
-                                # Filter out None values and empty strings
                                 match_strings = [m for m in match_strings if m]
-                                
-                                if match_strings and not any(
-                                    m.lower() in token_info.name.lower()
-                                    or m.lower() in token_info.symbol.lower()
-                                    for m in match_strings
-                                ):
-                                    logger.info(
-                                        f"Token does not match filters {match_strings}. Skipping..."
+                                if match_strings:
+                                    name_match = any(
+                                        m.lower() in token_info.name.lower()
+                                        or m.lower() in token_info.symbol.lower()
+                                        for m in match_strings
                                     )
-                                    continue
 
-                            # Apply creator_address filter (handles both string and list of strings)
+                            # Evaluate creator/user address match
                             if creator_address:
                                 addresses = [creator_address] if isinstance(creator_address, str) else creator_address
-                                # Filter out None values
                                 addresses = [a for a in addresses if a]
-                                
-                                if addresses and str(token_info.user) not in addresses:
-                                    logger.info(
-                                        f"Token not created by any of {addresses}. Skipping..."
-                                    )
+                                if addresses:
+                                    creator_str = str(token_info.user) if token_info.user else ""
+                                    creator_match = creator_str in addresses
+
+                            # Decide: if both filters provided, require at least one to pass.
+                            if match_string and creator_address:
+                                if not (name_match or creator_match):
+                                    logger.info(f"Token does not match name filters {match_strings} or creator filters {addresses}. Skipping...")
+                                    continue
+                            elif match_string:
+                                if not name_match:
+                                    logger.info(f"Token does not match name filters {match_strings}. Skipping...")
+                                    continue
+                            elif creator_address:
+                                if not creator_match:
+                                    logger.info(f"Token not created by any of {addresses}. Skipping...")
                                     continue
 
                             await token_callback(token_info)
